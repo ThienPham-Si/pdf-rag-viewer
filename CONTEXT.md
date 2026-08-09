@@ -37,5 +37,10 @@ A reference linking a claim in an assistant Message to a specific page in a sour
 _Avoid_: Reference, source, footnote
 
 **Tenant**:
-An isolated organizational boundary. All data is scoped to exactly one Tenant.
+An isolated organizational boundary. All data is scoped to exactly one Tenant. In the current model, each Tenant maps 1:1 to a single User.
 _Avoid_: Organization, workspace, account
+
+**User**:
+A person who authenticates via Clerk and owns exactly one Tenant. The identity boundary for login and API access.
+_Avoid_: Account, member, profile
+

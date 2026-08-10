@@ -7,6 +7,11 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/docint"
     REDIS_URL: str = "redis://localhost:6379/0"
     ENVIRONMENT: str = "development"
+    
+    CLERK_SECRET_KEY: str = ""
+    CLERK_PUBLISHABLE_KEY: str = ""
+    # Usually we can construct JWKS URL from the publishable key or a specific issuer URL
+    CLERK_ISSUER_URL: str = ""
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 

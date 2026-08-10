@@ -86,3 +86,13 @@ async def _check_redis() -> str:
         return "connected"
     except Exception:
         return "disconnected"
+
+
+from app.dependencies import get_current_tenant
+from app.models.tenant import Tenant
+from fastapi import Depends
+
+@app.get("/documents")
+async def list_documents(tenant: Tenant = Depends(get_current_tenant)):
+    """List documents for the current tenant (placeholder)."""
+    return []

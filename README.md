@@ -19,6 +19,7 @@ docker compose up -d
 This starts:
 - **PostgreSQL 16** with the pgvector extension (port 5432)
 - **Redis 7** (port 6379)
+- **MinIO** (S3-compatible storage, port 9000, console 9001)
 
 ### 2. Start the backend
 
@@ -59,7 +60,7 @@ pytest
 ```
 ├── frontend/          # Next.js + TypeScript + Tailwind CSS
 ├── backend/           # FastAPI + Python + Pydantic
-├── docker-compose.yml # PostgreSQL (pgvector) + Redis
+├── docker-compose.yml # PostgreSQL (pgvector) + Redis + MinIO
 └── README.md
 ```
 

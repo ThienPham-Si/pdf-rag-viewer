@@ -12,6 +12,12 @@ class Settings(BaseSettings):
     CLERK_PUBLISHABLE_KEY: str = ""
     # Usually we can construct JWKS URL from the publishable key or a specific issuer URL
     CLERK_ISSUER_URL: str = ""
+    
+    # MinIO / S3 config
+    S3_ENDPOINT_URL: str = "http://localhost:9000"
+    S3_ACCESS_KEY: str = "minioadmin"
+    S3_SECRET_KEY: str = "minioadmin"
+    S3_BUCKET: str = "docint-pdfs"
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 

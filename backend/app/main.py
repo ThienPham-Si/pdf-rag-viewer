@@ -89,10 +89,92 @@ async def _check_redis() -> str:
 
 
 from app.dependencies import get_current_tenant
+from app.database import get_db_session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.tenant import Tenant
-from fastapi import Depends
+from app.models.document import Document
+from fastapi import Depends, UploadFile, File, HTTPException, status
+from sqlalchemy import select
+from app.s3 import upload_file_to_s3
+import uuid
 
 @app.get("/documents")
-async def list_documents(tenant: Tenant = Depends(get_current_tenant)):
-    """List documents for the current tenant (placeholder)."""
-    return []
+async def list_documents(
+    tenant: Tenant = Depends(get_current_tenant),
+    db: AsyncSession = Depends(get_db_session)
+):
+    """List documents for the current tenant."""
+    stmt = select(Document).where(
+        Document.tenant_id == tenant.id,
+        Document.deleted_at.is_(None)
+    ).order_by(Document.created_at.desc())
+    result = await db.execute(stmt)
+    documents = result.scalars().all()
+    
+    return [
+        {
+            "id": doc.id,
+            "filename": doc.filename,
+            "status": doc.status,
+            "page_count": doc.page_count,
+            "created_at": doc.created_at
+        }
+        for doc in documents
+    ]
+
+@app.post("/documents/upload")
+async def upload_document(
+    file: UploadFile = File(...),
+    tenant: Tenant = Depends(get_current_tenant),
+    db: AsyncSession = Depends(get_db_session)
+):
+    """Upload a new document."""
+    if file.content_type != "application/pdf":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only PDF files are allowed"
+        )
+    
+    # 50MB limit validation (using spooling if over a certain size, we can check file size)
+    # UploadFile object in FastAPI has `size` property in python 3.10+ / starlette >= 0.28
+    if getattr(file, "size", 0) > 50 * 1024 * 1024:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File size exceeds 50MB limit"
+        )
+        
+    # Read first to verify actual size if file.size is not reliable
+    # But usually file.size is populated. Alternatively we can read chunks.
+    # Let's rely on file.size which is supported in recent FastAPI versions.
+    
+    document_id = uuid.uuid4()
+    s3_key = f"{tenant.id}/{document_id}/{file.filename}"
+    
+    # Upload to MinIO
+    # We can pass file.file to upload_fileobj
+    upload_success = upload_file_to_s3(file.file, s3_key)
+    if not upload_success:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to upload file to storage"
+        )
+    
+    # Create DB record
+    new_doc = Document(
+        id=document_id,
+        tenant_id=tenant.id,
+        filename=file.filename,
+        s3_key=s3_key,
+        # status defaults to uploaded
+    )
+    db.add(new_doc)
+    await db.commit()
+    
+    # TODO: Enqueue ARQ job here (04 - parsing pipeline)
+    
+    return {
+        "id": new_doc.id,
+        "filename": new_doc.filename,
+        "status": new_doc.status,
+        "created_at": new_doc.created_at
+    }

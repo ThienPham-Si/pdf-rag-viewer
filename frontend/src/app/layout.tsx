@@ -7,6 +7,7 @@ export const metadata: Metadata = {
 };
 
 import { ClerkProvider } from '@clerk/nextjs'
+import { Providers } from './providers'
 
 export default function RootLayout({
   children,
@@ -17,7 +18,7 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en" className="h-full antialiased dark">
         <body className="min-h-full flex flex-col bg-slate-950 text-slate-50">
-          {children}
+          <Providers>{children}</Providers>
         </body>
       </html>
     </ClerkProvider>

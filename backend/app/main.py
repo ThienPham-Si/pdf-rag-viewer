@@ -183,3 +183,24 @@ async def upload_document(
         "status": new_doc.status,
         "created_at": new_doc.created_at
     }
+
+from datetime import datetime, timezone
+
+@app.delete("/documents/{document_id}")
+async def delete_document(
+    document_id: uuid.UUID,
+    tenant: Tenant = Depends(get_current_tenant),
+    db: AsyncSession = Depends(get_db_session)
+):
+    """Soft delete a document."""
+    doc = await db.get(Document, document_id)
+    if not doc or doc.tenant_id != tenant.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found"
+        )
+    
+    doc.deleted_at = datetime.now(timezone.utc)
+    await db.commit()
+    
+    return {"status": "success"}

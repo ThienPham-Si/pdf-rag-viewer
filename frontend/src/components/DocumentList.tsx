@@ -1,9 +1,9 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@clerk/nextjs'
-import { fetchDocuments, Document } from '../lib/api'
-import { FileText, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { fetchDocuments, deleteDocument, Document } from '../lib/api'
+import { FileText, Loader2, AlertCircle, CheckCircle2, Trash2 } from 'lucide-react'
 
 function StatusBadge({ status }: { status: Document['status'] }) {
   switch (status) {
@@ -34,6 +34,7 @@ function StatusBadge({ status }: { status: Document['status'] }) {
 
 export function DocumentList() {
   const { getToken } = useAuth()
+  const queryClient = useQueryClient()
   
   const { data: documents, isLoading, error } = useQuery({
     queryKey: ['documents'],
@@ -43,6 +44,17 @@ export function DocumentList() {
       return fetchDocuments(token)
     },
     refetchInterval: 5000 // poll every 5s for status updates
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const token = await getToken()
+      if (!token) throw new Error('Not authenticated')
+      return deleteDocument(id, token)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['documents'] })
+    }
   })
 
   if (isLoading) {
@@ -94,8 +106,20 @@ export function DocumentList() {
               </p>
             </div>
           </div>
-          <div className="shrink-0 ml-4">
+          <div className="shrink-0 ml-4 flex items-center gap-3">
             <StatusBadge status={doc.status} />
+            <button
+              onClick={() => {
+                if (window.confirm('Are you sure you want to delete this document?')) {
+                  deleteMutation.mutate(doc.id)
+                }
+              }}
+              disabled={deleteMutation.isPending}
+              className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded-md transition-colors disabled:opacity-50"
+              title="Delete document"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
           </div>
         </div>
       ))}

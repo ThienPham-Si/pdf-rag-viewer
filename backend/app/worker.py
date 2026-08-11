@@ -70,8 +70,9 @@ async def process_document(ctx, document_id: str):
                     for i in range(0, len(all_children), batch_size):
                         batch = all_children[i:i+batch_size]
                         response = await gemini_client.aio.models.embed_content(
-                            model="text-embedding-004",
-                            contents=[c["content"] for c in batch]
+                            model="gemini-embedding-2",
+                            contents=[c["content"] for c in batch],
+                            config=genai.types.EmbedContentConfig(output_dimensionality=768)
                         )
                         for j, c in enumerate(batch):
                             c["embedding"] = response.embeddings[j].values
@@ -80,7 +81,7 @@ async def process_document(ctx, document_id: str):
                     logger.warning(f"Failed to generate real embeddings ({e}). Falling back to dummy embeddings.")
                     import random
                     for c in all_children:
-                        # text-embedding-004 has 768 dimensions
+                        # gemini-embedding-2 generates 768 dims (via config)
                         c["embedding"] = [random.uniform(-0.1, 0.1) for _ in range(768)]
 
             # Insert into database
@@ -145,7 +146,9 @@ async def process_document(ctx, document_id: str):
             
         except Exception as e:
             logger.error(f"Failed to process document {doc_uuid}: {e}")
+            await session.rollback()
             doc.status = DocumentStatus.failed
+            session.add(doc)
             await session.commit()
 
 

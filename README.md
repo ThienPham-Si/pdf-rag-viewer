@@ -35,7 +35,17 @@ The API is available at [http://localhost:8000](http://localhost:8000).
 
 Health check: [http://localhost:8000/health](http://localhost:8000/health)
 
-### 3. Start the frontend
+### 3. Start the background worker
+
+In a new terminal, start the ARQ background worker which processes the document parsing and embeddings:
+
+```bash
+cd backend
+source .venv/bin/activate
+arq app.worker.WorkerSettings
+```
+
+### 4. Start the frontend
 
 ```bash
 cd frontend

@@ -37,3 +37,17 @@ export async function uploadDocument(file: File, token: string): Promise<Documen
   }
   return res.json();
 }
+
+export async function deleteDocument(id: string, token: string): Promise<void> {
+  const res = await fetch(`${API_URL}/documents/${id}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail || 'Failed to delete document');
+  }
+}
+

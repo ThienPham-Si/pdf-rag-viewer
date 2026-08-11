@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     S3_SECRET_KEY: str = "minioadmin"
     S3_BUCKET: str = "docint-pdfs"
 
+    OPENAI_API_KEY: str = ""
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
 

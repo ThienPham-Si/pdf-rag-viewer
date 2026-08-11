@@ -6,6 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy import text
 import redis.asyncio as aioredis
+from arq import create_pool
+from arq.connections import RedisSettings
 
 from app.config import settings
 
@@ -17,6 +19,7 @@ async def lifespan(app: FastAPI):
     """Manage application startup and shutdown resources."""
     app.state.db_engine = create_async_engine(settings.DATABASE_URL)
     app.state.redis = aioredis.from_url(settings.REDIS_URL)
+    app.state.arq_pool = await create_pool(RedisSettings.from_dsn(settings.REDIS_URL))
 
     # Validate connections eagerly on startup
     try:
@@ -35,6 +38,7 @@ async def lifespan(app: FastAPI):
     yield
     await app.state.db_engine.dispose()
     await app.state.redis.aclose()
+    await app.state.arq_pool.close()
 
 
 app = FastAPI(title="Document Intelligence API", lifespan=lifespan)
@@ -170,7 +174,8 @@ async def upload_document(
     db.add(new_doc)
     await db.commit()
     
-    # TODO: Enqueue ARQ job here (04 - parsing pipeline)
+    # Enqueue ARQ job
+    await app.state.arq_pool.enqueue_job("process_document", str(document_id))
     
     return {
         "id": new_doc.id,

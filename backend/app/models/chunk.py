@@ -17,7 +17,7 @@ class Chunk(Base):
     content: Mapped[str] = mapped_column(Text, nullable=False)
     page_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
     token_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    embedding: Mapped[list[float] | None] = mapped_column(Vector(1536), nullable=True)
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(768), nullable=True)
     search_vector = mapped_column(TSVECTOR, nullable=True)
     chunk_index: Mapped[int | None] = mapped_column(Integer, nullable=True)
 

@@ -18,7 +18,7 @@ async def test_worker_processing(client: AsyncClient):
     with patch("app.auth.verify_token") as mock_verify, \
          patch("app.main.upload_file_to_s3") as mock_s3, \
          patch("app.worker.s3_client") as mock_worker_s3, \
-         patch("app.worker.openai_client") as mock_openai, \
+         patch("app.worker.gemini_client") as mock_gemini, \
          patch("app.worker.parse_and_chunk_pdf") as mock_parse:
              
         mock_verify.return_value = {"sub": "user_test_worker"}
@@ -46,13 +46,13 @@ async def test_worker_processing(client: AsyncClient):
             }
         ]
         
-        # Mock OpenAI embeddings
+        # Mock Gemini embeddings
         class FakeResponse:
-            class FakeData:
-                embedding = [0.1] * 1536
-            data = [FakeData()]
+            class FakeEmbedding:
+                values = [0.1] * 768
+            embeddings = [FakeEmbedding()]
             
-        mock_openai.embeddings.create = AsyncMock(return_value=FakeResponse())
+        mock_gemini.aio.models.embed_content = AsyncMock(return_value=FakeResponse())
 
         # 1. Upload Document
         files = {"file": ("test_worker.pdf", b"dummy pdf content", "application/pdf")}
@@ -87,7 +87,7 @@ async def test_worker_processing(client: AsyncClient):
             assert parent_chunk.content == "Parent chunk content"
             assert child_chunk.content == "Child chunk content"
             assert child_chunk.embedding is not None
-            assert len(child_chunk.embedding) == 1536
+            assert len(child_chunk.embedding) == 768
             
             # search_vector is populated by db
             # We can test if it's not null by checking directly via raw SQL or wait for DB flush

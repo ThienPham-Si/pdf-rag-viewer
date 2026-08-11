@@ -8,7 +8,7 @@ from arq import Worker
 from arq.connections import RedisSettings
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy import text
-from openai import AsyncOpenAI
+from google import genai
 import logging
 
 from app.config import settings
@@ -28,7 +28,7 @@ s3_client = boto3.client(
     aws_secret_access_key=settings.S3_SECRET_KEY,
 )
 
-openai_client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+gemini_client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
 async def process_document(ctx, document_id: str):
     doc_uuid = uuid.UUID(document_id)
@@ -63,26 +63,25 @@ async def process_document(ctx, document_id: str):
             
             if all_children:
                 try:
-                    if not settings.OPENAI_API_KEY or settings.OPENAI_API_KEY == "sk-proj-...":
-                        raise ValueError("No OpenAI API key provided.")
+                    if not settings.GEMINI_API_KEY or settings.GEMINI_API_KEY == "sk-proj-...":
+                        raise ValueError("No Gemini API key provided.")
                         
-                    # OpenAI allows up to 2048 inputs per batch, but let's batch in 1000s
-                    batch_size = 1000
+                    batch_size = 100
                     for i in range(0, len(all_children), batch_size):
                         batch = all_children[i:i+batch_size]
-                        response = await openai_client.embeddings.create(
-                            input=[c["content"] for c in batch],
-                            model="text-embedding-3-small"
+                        response = await gemini_client.aio.models.embed_content(
+                            model="text-embedding-004",
+                            contents=[c["content"] for c in batch]
                         )
                         for j, c in enumerate(batch):
-                            c["embedding"] = response.data[j].embedding
+                            c["embedding"] = response.embeddings[j].values
                             
                 except Exception as e:
                     logger.warning(f"Failed to generate real embeddings ({e}). Falling back to dummy embeddings.")
                     import random
                     for c in all_children:
-                        # text-embedding-3-small has 1536 dimensions
-                        c["embedding"] = [random.uniform(-0.1, 0.1) for _ in range(1536)]
+                        # text-embedding-004 has 768 dimensions
+                        c["embedding"] = [random.uniform(-0.1, 0.1) for _ in range(768)]
 
             # Insert into database
             logger.info(f"Inserting chunks into DB for {doc_uuid}")

@@ -43,7 +43,7 @@ app = FastAPI(title="Document Intelligence API", lifespan=lifespan)
 # See ADR-0002: CORS must allow the Vercel frontend origin specifically.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

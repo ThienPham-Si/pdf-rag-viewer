@@ -3,6 +3,14 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import jwt
 from jwt import PyJWKClient
 from typing import Optional
+import ssl
+import certifi
+
+# Fix for macOS Python lacking root certificates for urllib
+try:
+    ssl._create_default_https_context = lambda: ssl.create_default_context(cafile=certifi.where())
+except Exception:
+    pass
 
 from app.config import settings
 
@@ -45,14 +53,16 @@ def verify_token(token: str) -> dict:
         )
         return data
     except jwt.PyJWKClientError as e:
+        print("JWK Client Error:", e)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Unable to fetch JWKS",
+            detail=f"Unable to fetch JWKS: {e}",
         ) from e
     except jwt.InvalidTokenError as e:
+        print("Invalid Token Error:", e)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication token",
+            detail=f"Invalid authentication token: {e}",
         ) from e
 
 def get_current_user_id(credentials: HTTPAuthorizationCredentials = Security(security)) -> str:

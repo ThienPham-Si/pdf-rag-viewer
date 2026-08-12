@@ -71,7 +71,7 @@ async def process_document(ctx, document_id: str):
                         batch = all_children[i:i+batch_size]
                         response = await gemini_client.aio.models.embed_content(
                             model="gemini-embedding-2",
-                            contents=[c["content"] for c in batch],
+                            contents=[[c["content"]] for c in batch],
                             config=genai.types.EmbedContentConfig(output_dimensionality=768)
                         )
                         for j, c in enumerate(batch):

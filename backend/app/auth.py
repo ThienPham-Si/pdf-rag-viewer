@@ -7,6 +7,7 @@ import ssl
 import certifi
 
 # Fix for macOS Python lacking root certificates for urllib
+# This is a workaround to ensure that the SSL context uses the certifi bundle for HTTPS requests, which is necessary for fetching JWKS from Clerk's endpoints.
 try:
     ssl._create_default_https_context = lambda: ssl.create_default_context(cafile=certifi.where())
 except Exception:

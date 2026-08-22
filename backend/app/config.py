@@ -10,7 +10,6 @@ class Settings(BaseSettings):
     
     CLERK_SECRET_KEY: str = ""
     CLERK_PUBLISHABLE_KEY: str = ""
-    # Usually we can construct JWKS URL from the publishable key or a specific issuer URL
     CLERK_ISSUER_URL: str = ""
     
     # MinIO / S3 config
